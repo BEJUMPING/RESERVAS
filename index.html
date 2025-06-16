@@ -2,12 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reserva Sala White</title>
-
-  <!-- ===== Estilo visual (verde Be Jumping) ===== -->
   <style>
-    :root { --verde: #00994d; --verde-oscuro: #007f3f; }
     body {
       font-family: Arial, sans-serif;
       background: #f8f8f8;
@@ -23,8 +20,8 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h2 {
+      color: #00994d; /* Verde intenso */
       text-align: center;
-      color: var(--verde);
     }
     label {
       display: block;
@@ -40,17 +37,17 @@
       margin-top: 20px;
       width: 100%;
       padding: 12px;
-      font-size: 16px;
-      background-color: var(--verde);
+      background-color: #00994d;
       color: white;
       border: none;
       border-radius: 8px;
+      font-size: 16px;
       cursor: pointer;
     }
     button:hover {
-      background-color: var(--verde-oscuro);
+      background-color: #007f3f;
     }
-    .msg {
+    .success, .error {
       text-align: center;
       margin-top: 20px;
       font-weight: bold;
@@ -64,85 +61,50 @@
   </style>
 </head>
 <body>
-  <form id="reservaForm">
+  <form id="bookingForm" action="https://formspree.io/f/mkgbbkvw" method="POST">
     <h2>Reserva Sala White</h2>
+    
+    <label for="name">Nombre / Name:</label>
+    <input type="text" id="name" name="Nombre" required /> <label for="email">Email:</label>
+    <input type="email" id="email" name="Email" required /> <label for="date">Fecha:</label>
+    <input type="date" id="date" name="Fecha" required /> <label for="startTime">Hora de inicio:</label>
+    <input type="time" id="startTime" name="Hora de inicio" required /> <label for="endTime">Hora de fin:</label>
+    <input type="time" id="endTime" name="Hora de fin" required /> <input type="hidden" name="Sala" value="Sala White"> <button type="submit">Reservar</button>
 
-    <label for="name">Nombre:</label>
-    <input id="name" name="name" type="text" required />
-
-    <label for="email">Correo electrónico:</label>
-    <input id="email" name="email" type="email" required />
-
-    <label for="date">Fecha:</label>
-    <input id="date" name="date" type="date" required />
-
-    <label for="startTime">Hora de inicio:</label>
-    <input id="startTime" name="startTime" type="time" min="08:00" max="20:00" required />
-
-    <label for="endTime">Hora de fin:</label>
-    <input id="endTime" name="endTime" type="time" min="08:00" max="20:00" required />
-
-    <input type="hidden" name="sala" value="Sala White" />
-
-    <button type="submit">Reservar</button>
-    <div id="message" class="msg"></div>
-  </form>
+    <div id="message" class=""></div> </form>
 
   <script>
-    // ✅ URL final de Google Apps Script
-    const scriptURL = "https://script.google.com/macros/s/AKfycbyOCe9TAJq1dQN18FInIFGMEExIq7DXE1GkzVR11ZOU0gVwbXvWK0fmTkirVcOigB6c/exec";
+    const form = document.getElementById("bookingForm");
+    const messageDiv = document.getElementById("message");
 
-    const form   = document.getElementById("reservaForm");
-    const msgBox = document.getElementById("message");
-    const btn    = form.querySelector("button");
+    form.addEventListener("submit", function (e) {
+      // Limpiar mensajes anteriores
+      messageDiv.textContent = "";
+      messageDiv.className = "";
 
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      msgBox.textContent = "";
-      msgBox.className = "msg";
+      const startTimeValue = document.getElementById("startTime").value;
+      const endTimeValue = document.getElementById("endTime").value;
 
-      const data = Object.fromEntries(new FormData(form).entries());
-      const { startTime, endTime } = data;
+      // Si no hay valores de tiempo, la validación del navegador ya los maneja
+      if (!startTimeValue || !endTimeValue) {
+        // Dejar que el navegador muestre su mensaje de campo requerido
+        return; 
+      }
 
-      // Validación duración máxima 2 horas
-      const t1 = new Date(`1970-01-01T${startTime}:00`);
-      const t2 = new Date(`1970-01-01T${endTime}:00`);
-      const duration = (t2 - t1) / (1000 * 60); // minutos
+      const start = new Date(`1970-01-01T${startTimeValue}:00`);
+      const end = new Date(`1970-01-01T${endTimeValue}:00`);
+      const durationHrs = (end - start) / (1000 * 60 * 60); // duración en horas
 
-      if (duration <= 0 || duration > 120) {
-        msgBox.textContent = "❌ La reserva debe durar más de 0 y hasta 2 horas.";
-        msgBox.classList.add("error");
+      if (durationHrs <= 0 || durationHrs > 2) {
+        e.preventDefault(); // Prevenir el envío si la validación falla
+        messageDiv.textContent = "❌ Duración inválida. La hora de fin debe ser posterior a la de inicio y la reserva no puede exceder las 2 horas.";
+        messageDiv.className = "error";
         return;
       }
-
-      // Enviar
-      btn.disabled = true;
-      btn.textContent = "Enviando…";
-
-      try {
-        const res = await fetch(scriptURL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        const json = await res.json();
-
-        if (json.result === "success") {
-          msgBox.textContent = "✅ Reserva exitosa. Revisa tu correo.";
-          msgBox.classList.add("success");
-          form.reset();
-        } else {
-          msgBox.textContent = "❌ Error: " + json.message;
-          msgBox.classList.add("error");
-        }
-      } catch (err) {
-        console.error(err);
-        msgBox.textContent = "❌ Error al conectar con el servidor.";
-        msgBox.classList.add("error");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Reservar";
-      }
+      
+      // Si la validación pasa, el formulario se enviará normalmente a la URL de Formspree
+      // Formspree se encargará de la confirmación al usuario (redirección a una página de agradecimiento)
+      // o un mensaje de éxito/error en su propia interfaz.
     });
   </script>
 </body>
