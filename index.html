@@ -148,34 +148,26 @@
 
             try {
                 const response = await fetch(scriptURL, {
-                    method: 'POST',
-                    body: JSON.stringify(data), 
-                    headers: {
-                        'Content-Type': 'application/json' 
-                    }
-                });
-
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    const result = await response.json(); 
-
-                    if (result.result === "success") {
-                        mensaje.textContent = "✅ Reserva realizada con éxito!";
-                        form.reset(); 
-                    } else {
-                        error.textContent = "❌ Error al realizar la reserva: " + (result.message || "Error desconocido.");
-                        console.error("Error en Apps Script:", result.message); 
-                    }
-                } else {
-                    const textResult = await response.text();
-                    error.textContent = "❌ Error inesperado del servidor. Código: " + response.status;
-                    console.error("Respuesta no JSON:", response.status, textResult);
-                }
-
-            } catch (fetchError) {
-                error.textContent = "❌ Error de conexión. Por favor, inténtalo de nuevo más tarde o contacta al soporte.";
-                console.error("Error de fetch:", fetchError); 
-            } finally {
+  method: "POST",
+  headers: {
+    "Content-Type": "text/plain;charset=utf-8"
+  },
+  body: JSON.stringify({ name, email, date, startTime, endTime })
+})
+.then(response => response.json())
+.then(data => {
+  if (data.result === "success") {
+    alert("✅ Reserva exitosa.");
+    form.reset();
+  } else {
+    alert("❌ Error: " + data.message);
+  }
+})
+.catch(error => {
+  alert("❌ Error al enviar. Intenta más tarde.");
+  console.error("Error:", error);
+});
+ finally {
                 submitButton.disabled = false;
                 submitButton.textContent = "Reservar / Book";
             }
