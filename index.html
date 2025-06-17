@@ -65,29 +65,17 @@
     <h2>Reserva Sala White</h2>
     
     <label for="name">Nombre / Name:</label>
-    <input type="text" id="name" name="Nombre" required />
-
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="Email" required />
-
-    <label for="date">Fecha:</label>
-    <input type="date" id="date" name="Fecha" required />
-
-    <label for="startTime">Hora de inicio:</label>
-    <input type="time" id="startTime" name="Hora de inicio" required />
-
-    <label for="endTime">Hora de fin:</label>
-    <input type="time" id="endTime" name="Hora de fin" required />
-
-    <input type="hidden" name="Sala" value="Sala White">
-
-    <button type="submit">Reservar</button>
+    <input type="text" id="name" name="name" required /> <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required /> <label for="date">Fecha:</label>
+    <input type="date" id="date" name="date" required /> <label for="startTime">Hora de inicio:</label>
+    <input type="time" id="startTime" name="startTime" min="08:00" max="20:00" required /> <label for="endTime">Hora de fin:</label>
+    <input type="time" id="endTime" name="endTime" min="08:00" max="20:00" required /> <input type="hidden" name="sala" value="Sala White"> <button type="submit">Reservar</button>
 
     <div id="message" class=""></div>
   </form>
 
   <script>
-    const scriptURL = "https://us-central1-reservas-sala-white.cloudfunctions.net/reservarSala"; // Esta es la URL de tu Firebase Function
+    const scriptURL = "https://us-central1-reservas-sala-white.cloudfunctions.net/reservarSala"; 
     
     const form = document.getElementById("bookingForm");
     const messageDiv = document.getElementById("message");
@@ -99,19 +87,23 @@
       messageDiv.textContent = ""; 
       messageDiv.className = "";   
 
-      const name = document.getElementById("name").value;
-      const email = document.getElementById("email").value;
-      const date = document.getElementById("date").value;
-      const startTime = document.getElementById("startTime").value;
-      const endTime = document.getElementById("endTime").value;
-      const sala = "Sala White"; 
+      // Ya no obtenemos los valores por ID y luego creamos un objeto,
+      // la data del fetch se construye directamente desde los 'name' del formulario
+      const formData = new FormData(form);
+      const data = {};
+      for (let [key, value] of formData.entries()) {
+        data[key] = value;
+      }
+      // Asegúrate de que tu Firebase Function espera 'name', 'email', 'date', etc.
+
+      const { name, email, date, startTime, endTime, sala } = data; // Ahora sí, estos coincidirán
 
       // Validación de duración máxima de 2 horas
       const startDate = new Date(`${date}T${startTime}:00`);
       const endDate = new Date(`${date}T${endTime}:00`);
-      const diff = (endDate - startDate) / (1000 * 60 * 60); 
+      const durationHrs = (endDate - startDate) / (1000 * 60 * 60); 
 
-      if (diff <= 0 || diff > 2) { // Duración en horas
+      if (durationHrs <= 0 || durationHrs > 2) { 
         messageDiv.textContent = "❌ Duración inválida. La hora de fin debe ser posterior a la de inicio y la reserva no puede exceder las 2 horas.";
         messageDiv.className = "error";
         return; 
@@ -121,19 +113,10 @@
       submitButton.disabled = true;
       submitButton.textContent = "Reservando...";
 
-      const data = {
-        name: name,
-        email: email,
-        date: date,
-        startTime: startTime,
-        endTime: endTime,
-        sala: sala
-      };
-
       try {
-        const response = await fetch(scriptURL, { // Usamos la scriptURL para el fetch
+        const response = await fetch(scriptURL, {
           method: 'POST',
-          body: JSON.stringify(data), 
+          body: JSON.stringify(data), // 'data' ya tiene los nombres correctos
           headers: {
             'Content-Type': 'application/json' 
           }
